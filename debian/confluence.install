@@ -1,0 +1,7 @@
+conf/* /etc/confluence
+webapps /usr/share/confluence
+bin /usr/share/confluence
+debian/defaults.template /usr/share/confluence/
+debian/defaults.md5sum /usr/share/confluence/
+debian/logrotate.template /usr/share/confluence/
+debian/logrotate.md5sum /usr/share/confluence/

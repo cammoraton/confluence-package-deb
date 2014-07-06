@@ -1,0 +1,23 @@
+Template: confluence/username
+Type: string
+Default: confluence
+Description: Dedicated system account for the confluence:
+ Confluence runs within a tomcat6 server and must use a dedicated account for 
+ its operation so that the system's security is not compromised by running it 
+ with superuser privileges.
+
+Template: confluence/groupname
+Type: string
+Default: confluence
+Description: Dedicated system group for confluence:
+ Confluence runs within tomcat6 server and must use a dedicated group for its 
+ operation so that the system's security is not compromised by running it with 
+ superuser privileges.
+
+Template: confluence/javaopts
+Type: string
+Default: -Djava.awt.headless=true -Xms256M -Xmx512M -XX:MaxPermSize=256M
+Description: Please choose Confluence JVM Java options:
+ Confluence's JVM will be launched with a specific set of Java options.
+ .
+ Default heap size and perm space are tuned to Atlassian's defaults.

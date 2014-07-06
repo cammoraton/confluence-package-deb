@@ -1,0 +1,66 @@
+#!/bin/sh
+set -e
+
+#DEBHELPER#
+
+CONFFILE=/etc/default/confluence
+LR_CONFFILE=/etc/logrotate.d/confluence
+
+# Remove cached files and auto-generated catalina.policy
+rm -rf /var/cache/confluence/*
+
+case "$1" in
+    remove)
+        # Remove ROOT webapp if not modified
+        RWLOC="/usr/share/confluence/webapps/ROOT"
+        RWFILES="$RWLOC/index.html $RWLOC/META-INF/context.xml"
+        if [ "`(cat $RWFILES | md5sum -) 2>/dev/null | cut -d ' ' -f 1`" \
+                            = "c05987dd6c6bcbd651889e9a0ec98ade" ] ; then
+            rm $RWFILES
+            rmdir --ignore-fail-on-non-empty \
+                /usr/share/confluence/webapps/ROOT/META-INF \
+                /usr/share/confluence/webapps/ROOT \
+                /usr/share/confluence/webapps || true
+        fi
+        if [ -d "/var/cache/confluence" ] ; then
+            rm -rf /var/cache/confluence
+        fi
+    ;;
+
+    purge)
+        # ignore errors during purge
+        set +e
+        if [ -x "/usr/bin/ucf" ]; then
+            ucf --purge $CONFFILE
+            ucf --purge $LR_CONFFILE
+        fi
+        rm -rf /var/log/confluence /usr/share/confluence/temp $CONFFILE $LR_CONFFILE
+        if [ -d "/var/lib/confluence" ] ; then
+            rmdir --ignore-fail-on-non-empty /var/lib/confluence
+        fi
+        rmdir --ignore-fail-on-non-empty /etc/confluence/policy.d \
+          /etc/confluence/Catalina/localhost /etc/confluence/Catalina /etc/confluence
+	# clean up /etc/authbind after conffiles have been removed 
+        rmdir --ignore-fail-on-non-empty /etc/authbind/byuid /etc/authbind 
+        # Put all files owned by group confluence back into root group before deleting
+        # the confluence user and group
+        chown -Rhf root:root /etc/confluence/ || true
+        # Remove user/group and log files (don't remove everything under
+        # /var/lib/confluence because there might be user-installed webapps)
+        db_get confluence/username && CONFLUENCE_USER="$RET" || CONFLUENCE_USER="confluence"
+        db_get confluence/groupname && CONFLUENCE_GROUP="$RET" || CONFLUENCE_GROUP="confluence"
+        deluser $CONFLUENCE_USER
+        delgroup $CONFLUENCE_GROUP
+
+        set -e
+    ;;
+
+    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        # Nothing to do here
+    ;;
+
+    *)
+        echo "$0 called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac

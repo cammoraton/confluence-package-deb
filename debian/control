@@ -1,0 +1,13 @@
+Source: confluence
+Section: unknown
+Priority: optional
+Maintainer: Nick Cammorato <nick@cammorato.com>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.4
+Homepage: https://www.atlassian.com/software/confluence
+
+Package: confluence
+Architecture: all
+Depends: tomcat6-user, ${misc:Depends}
+Description: Atlassian Confluence
+ The enterprise wiki.

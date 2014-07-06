@@ -1,0 +1,7 @@
+usr/share/confluence/logs
+usr/share/confluence/data
+usr/share/confluence/temp
+usr/share/confluence/work
+var/cache/confluence
+etc/logrotate.d
+etc/confluence/Catalina/localhost

@@ -1,0 +1,3 @@
+/etc/confluence /usr/share/confluence/conf 
+/usr/share/confluence/logs /var/log/confluence 
+/usr/share/confluence/logs /usr/share/confluence/data/logs

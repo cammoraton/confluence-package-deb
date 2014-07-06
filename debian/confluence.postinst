@@ -1,0 +1,72 @@
+#!/bin/sh
+set -e
+
+. /usr/share/debconf/confmodule
+TEMPLATE="/usr/share/confluence/defaults.template"
+CONFFILE="/etc/default/confluence"
+LR_TEMPLATE="/usr/share/confluence/logrotate.template"
+LR_CONFFILE="/etc/logrotate.d/confluence"
+JAVA_OPTS="-Djava.awt.headless=true -Xms256M -Xmx512M -XX:MaxPermSize=256M"
+
+case "$1" in
+    configure)
+
+	# Generate $CONFFILE from debconf settings and $TEMPLATE
+	db_version 2.0
+	db_get confluence/username && CONFLUENCE_USER="$RET" || CONFLUENCE_USER="confluence"
+	db_get confluence/groupname && CONFLUENCE_GROUP="$RET" || CONFLUENCE_GROUP="confluence"
+	db_get confluence/javaopts && JAVA_OPTS="$RET" || JAVA_OPTS="-Djava.awt.headless=true -Xms256M -Xmx512M -XX:MaxPermSize=256M"
+
+	tmpfile=`mktemp /tmp/confluence.XXXXXXXXXX`
+	chmod 644 $tmpfile
+	cat $TEMPLATE \
+		| sed "s%^CONFLUENCE_USER=.*$%CONFLUENCE_USER=$CONFLUENCE_USER%" \
+		| sed "s%^CONFLUENCE_GROUP=.*$%CONFLUENCE_GROUP=$CONFLUENCE_GROUP%" \
+		| sed "s%^JAVA_OPTS=.*$%JAVA_OPTS=\"$JAVA_OPTS\"%" \
+		>> $tmpfile
+	ucf --debconf-ok --sum-file /usr/share/confluence/defaults.md5sum $tmpfile $CONFFILE
+	rm -f $tmpfile
+
+	if ! getent group "$CONFLUENCE_GROUP" > /dev/null 2>&1 ; then
+	    addgroup --system "$CONFLUENCE_GROUP" --quiet
+	fi
+	if ! id $CONFLUENCE_USER > /dev/null 2>&1 ; then
+	    adduser --system --home /usr/share/confluence --no-create-home \
+		--ingroup "$CONFLUENCE_GROUP" --disabled-password --shell /bin/false \
+		"$CONFLUENCE_USER"
+	fi
+	chown -R $CONFLUENCE_USER:adm /var/log/confluence /var/cache/confluence /usr/share/confluence/logs
+	chmod 750 /var/log/confluence /var/cache/confluence
+
+	# populate /etc/logrotate.d/confluence
+	tmpfile=`mktemp /tmp/confluence.XXXXXXXXXX`
+	chmod 644 $tmpfile
+	cat $LR_TEMPLATE | sed "s%create 640 confluence adm%create 640 $CONFLUENCE_USER adm%" >> $tmpfile
+	ucf --debconf-ok --sum-file /usr/share/confluence/logrotate.md5sum $tmpfile $LR_CONFFILE
+	rm -f $tmpfile
+
+	# configuration files should not be modifiable by tomcat6 user, as this can be a security issue
+	# (an attacker may insert code in a webapp and have access to all tomcat configuration)
+	# but those files should be readable by tomcat6, so we set the group to tomcat6
+	chown -Rh root:$CONFLUENCE_GROUP /etc/confluence
+	chmod 640 /etc/confluence/tomcat-users.xml
+	chown -Rh $CONFLUENCE_USER:$CONFLUENCE_GROUP /usr/share/confluence
+	chmod 775 /usr/share/confluence/webapps
+	chmod 775 /etc/confluence/Catalina /etc/confluence/Catalina/localhost
+
+	# Authorize user tomcat6 to open privileged ports via authbind.
+	CONFLUENCE_UID="`id -u $CONFLUENCE_USER`"
+	if [ ! -f "/etc/authbind/byuid/$CONFLUENCE_UID" ]; then
+		if [ ! -d "/etc/authbind/byuid" ]; then
+			mkdir -p /etc/authbind/byuid
+			chmod 755 /etc/authbind
+			chmod 755 /etc/authbind/byuid
+		fi
+		echo '0.0.0.0/0:1,1023' >/etc/authbind/byuid/$CONFLUENCE_UID
+		chown $CONFLUENCE_USER:$CONFLUENCE_GROUP /etc/authbind/byuid/$CONFLUENCE_UID
+		chmod 700 /etc/authbind/byuid/$CONFLUENCE_UID
+	fi
+    ;;
+esac
+
+#DEBHELPER#

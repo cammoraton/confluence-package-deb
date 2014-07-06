@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    remove)
+	[ -f /etc/default/confluence ] && . /etc/default/confluence
+	[ -z "$CONFLUENCE_USER" ] && CONFLUENCE_USER="confluence"
+	# Remove auth for confluence to open privileged ports via authbind.
+	CONFLUENCE_UID="`id -u $CONFLUENCE_USER`"
+	if [ -f "/etc/authbind/byuid/$CONFLUENCE_UID" ]; then
+		rm -f /etc/authbind/byuid/$CONFLUENCE_UID
+	fi
+    ;;
+esac
+
+#DEBHELPER#

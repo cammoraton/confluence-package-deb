@@ -1,0 +1,8 @@
+/var/log/confluence/catalina.out {
+  copytruncate
+  weekly
+  rotate 52
+  compress
+  missingok
+  create 640 tomcat6 adm
+}
