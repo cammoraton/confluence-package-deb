@@ -35,7 +35,7 @@ case "$1" in
 		--ingroup "$CONFLUENCE_GROUP" --disabled-password --shell /bin/false \
 		"$CONFLUENCE_USER"
 	fi
-	chown -R $CONFLUENCE_USER:adm /var/log/confluence /var/cache/confluence /usr/share/confluence/logs
+	chown -R $CONFLUENCE_USER:adm /var/log/confluence /var/cache/confluence 
 	chmod 750 /var/log/confluence /var/cache/confluence
 
 	# populate /etc/logrotate.d/confluence
@@ -53,7 +53,8 @@ case "$1" in
 	chown -Rh $CONFLUENCE_USER:$CONFLUENCE_GROUP /usr/share/confluence
 	chmod 775 /usr/share/confluence/webapps
 	chmod 775 /etc/confluence/Catalina /etc/confluence/Catalina/localhost
-
+    chgrp adm /usr/share/confluence/logs
+    
 	# Authorize user tomcat6 to open privileged ports via authbind.
 	CONFLUENCE_UID="`id -u $CONFLUENCE_USER`"
 	if [ ! -f "/etc/authbind/byuid/$CONFLUENCE_UID" ]; then
